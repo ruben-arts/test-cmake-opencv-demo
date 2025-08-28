@@ -5,6 +5,7 @@ preview = ["pixi-build"]
 
 [tasks]
 opencv_demo = "opencv_demo"
+opencv_demo_ci = "opencv_demo --no-display"
 
 [dependencies]
 my_package = { path = "." }

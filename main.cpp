@@ -56,14 +56,30 @@ int main(int argc, char** argv) {
     cv::Mat image;
     std::string input_source;
     
-    if (argc > 1) {
-        std::string input = argv[1];
-        
+    // Check if we're in CI environment or if display should be disabled
+    bool disable_display = false;
+    if (getenv("CI") || getenv("GITHUB_ACTIONS") || getenv("DISABLE_DISPLAY")) {
+        disable_display = true;
+    }
+    
+    // Parse command line arguments
+    std::string image_input;
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "--no-display" || arg == "--ci") {
+            disable_display = true;
+        } else if (arg.find("--") != 0) {
+            // Not a flag, treat as image input
+            image_input = arg;
+        }
+    }
+    
+    if (!image_input.empty()) {
         // Check if it's a URL
-        if (input.find("http://") == 0 || input.find("https://") == 0) {
-            std::cout << "Downloading image from URL: " << input << std::endl;
-            image = downloadImage(input);
-            input_source = "URL: " + input;
+        if (image_input.find("http://") == 0 || image_input.find("https://") == 0) {
+            std::cout << "Downloading image from URL: " << image_input << std::endl;
+            image = downloadImage(image_input);
+            input_source = "URL: " + image_input;
             
             if (!image.empty()) {
                 cv::imwrite("downloaded_image.jpg", image);
@@ -71,8 +87,8 @@ int main(int argc, char** argv) {
             }
         } else {
             // Try to load as local file
-            image = cv::imread(input);
-            input_source = "File: " + input;
+            image = cv::imread(image_input);
+            input_source = "File: " + image_input;
         }
     }
     
@@ -151,14 +167,19 @@ int main(int argc, char** argv) {
     std::cout << "\nResults saved:" << std::endl;
     std::cout << "  - opencv_demo_result.jpg (4-panel comparison)" << std::endl;
 
-    // Try to display if possible
-    try {
-        cv::imshow("OpenCV Demo - Multiple Techniques", final_result);
-        std::cout << "\nPress any key to close..." << std::endl;
-        cv::waitKey(0);
-        cv::destroyAllWindows();
-    } catch (const cv::Exception& e) {
-        std::cout << "\nDisplay not available, but all images saved successfully!" << std::endl;
+    // Try to display if possible and not disabled
+    if (!disable_display) {
+        try {
+            cv::imshow("OpenCV Demo - Multiple Techniques", final_result);
+            std::cout << "\nPress any key to close..." << std::endl;
+            cv::waitKey(0);
+            cv::destroyAllWindows();
+        } catch (const cv::Exception& e) {
+            std::cout << "\nDisplay not available, but all images saved successfully!" << std::endl;
+        }
+    } else {
+        std::cout << "\nDisplay disabled (running in CI or --no-display flag used)" << std::endl;
+        std::cout << "All images saved successfully!" << std::endl;
     }
 
     return 0;
